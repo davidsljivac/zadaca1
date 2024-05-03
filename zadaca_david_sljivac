@@ -1,0 +1,110 @@
+using System;
+using System.Collections.Generic;
+
+public interface IBankovniRacun
+{
+    decimal Stanje { get; set; }
+}
+
+public interface ITransakcija
+{
+    string IzvrsiTransakciju();
+}
+
+public abstract class Osoba
+{
+    public string Ime { get; set; }
+    public string Prezime { get; set; }
+
+    public virtual string PrikaziOsobnePodatke()
+    {
+        return $"Ime: {Ime}, Prezime: {Prezime}";
+    }
+}
+
+public abstract class Transakcija : ITransakcija
+{
+    public IBankovniRacun RacunIzvor { get; set; }
+    public IBankovniRacun RacunOdrediste { get; set; }
+    public decimal Iznos { get; set; }
+
+    public virtual string IzvrsiTransakciju()
+    {
+        return "Transakcija je uspješno izvršena.";
+    }
+}
+
+public class Korisnik : Osoba, IBankovniRacun
+{
+    public string BrojRacuna { get; set; }
+    public decimal Stanje { get; set; }
+
+    public override string PrikaziOsobnePodatke()
+    {
+        return $"Ime: {Ime}, Prezime: {Prezime}, Broj računa: {BrojRacuna}, Stanje: {Stanje}";
+    }
+}
+
+public class Banka
+{
+    private List<Korisnik> korisnici = new List<Korisnik>();
+
+    public void DodajKorisnika(Korisnik korisnik)
+    {
+        korisnici.Add(korisnik);
+    }
+
+    public string IzvrsiTransakciju(Transakcija transakcija)
+    {
+        return transakcija.IzvrsiTransakciju();
+    }
+}
+
+public class Uplata : Transakcija
+{
+    public override string IzvrsiTransakciju()
+    {
+        RacunOdrediste.Stanje += Iznos;
+        RacunIzvor.Stanje -= Iznos;
+        return "Uplata uspješno izvršena.";
+    }
+}
+
+public class Isplata : Transakcija
+{
+    public override string IzvrsiTransakciju()
+    {
+        if (Iznos <= RacunIzvor.Stanje)
+        {
+            RacunIzvor.Stanje -= Iznos;
+            RacunOdrediste.Stanje += Iznos;
+            return "Isplata uspješno izvršena.";
+        }
+        else
+        {
+            return "Nedovoljno sredstava na računu za isplatu.";
+        }
+    }
+}
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        Korisnik korisnik1 = new Korisnik { Ime = "Ana", Prezime = "Anić", BrojRacuna = "123456", Stanje = 1000 };
+        Korisnik korisnik2 = new Korisnik { Ime = "Ivo", Prezime = "Ivić", BrojRacuna = "654321", Stanje = 500 };
+
+        Banka banka = new Banka();
+        banka.DodajKorisnika(korisnik1);
+        banka.DodajKorisnika(korisnik2);
+
+        Uplata uplata = new Uplata { RacunIzvor = korisnik1, RacunOdrediste = korisnik2, Iznos = 200 };
+        Isplata isplata = new Isplata { RacunIzvor = korisnik2, RacunOdrediste = korisnik1, Iznos = 100 };
+
+        Console.WriteLine(banka.IzvrsiTransakciju(uplata));
+        Console.WriteLine(banka.IzvrsiTransakciju(isplata));
+
+        Console.WriteLine(korisnik1.PrikaziOsobnePodatke());
+        Console.WriteLine(korisnik2.PrikaziOsobnePodatke());
+    }
+}
